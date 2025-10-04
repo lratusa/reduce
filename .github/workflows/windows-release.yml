@@ -1,0 +1,48 @@
+name: Windows Release (MSVC)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add MSVC dev tools to PATH
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure (CMake, x64, Release)
+        run: |
+          cmake -S . -B build ^
+            -G "Ninja" ^
+            -DCMAKE_BUILD_TYPE=Release
+        shell: cmd
+
+      - name: Build
+        run: cmake --build build --config Release
+        shell: cmd
+
+      - name: Install (to staging)
+        run: |
+          cmake --install build --config Release --prefix "%CD%\\stage"
+        shell: cmd
+
+      - name: Collect artifacts
+        run: |
+          echo Staging at %CD%\stage
+          dir stage /s
+        shell: cmd
+
+      - name: Upload artifact (reduce-windows-release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: reduce-windows-release
+          path: |
+            stage/**/*
